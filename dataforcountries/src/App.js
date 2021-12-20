@@ -20,54 +20,130 @@ const Result = (props) => {
     }
 }
 
+
+
+const Language = (props) => {
+    return(
+        <li>{props.language}</li>
+    )
+}
+
+const Languages = (props) => {
+    console.log(props)
+    return(
+        <ul>
+            {Object.values(props.languages).map(language => <Language key={language} language={language}/>)}
+        </ul>
+    )
+}
+
+const Weather = (props) => {
+    const [weather, setWeather] = useState({
+        temp: '',
+        wind: {
+            speed: '',
+            deg: ''
+        }
+    })
+
+    useEffect(() => {
+        const api_key = process.env.REACT_APP_API_KEY
+        console.log(props.country.capital)
+        console.log(api_key)
+        const url = 'https://api.openweathermap.org/data/2.5/weather?q='.concat(props.country.capital,'&appid=',api_key)
+        console.log(url)
+        axios.get(url)
+            .then(response => {
+                console.log(response.data)
+                setWeather({
+                    temp: response.data.main.temp,
+                    wind: {
+                        speed: response.data.wind.speed,
+                        deg: response.data.wind.deg
+                    }
+                })
+            })
+    },[])
+
+    const tempCelsius = weather.temp - 273.15
+
+    return(
+        <div>
+            <h2>Weather in {props.country.capital}</h2>
+            <p>temperature: {tempCelsius} Celsius</p>
+            <p>wind: {weather.wind.speed} mph direction {weather.wind.deg} degrees </p>
+        </div>
+    )
+}
+
+const Info = (props) =>{
+    return(
+            <div>
+                <h3>{props.country.name.common}</h3>
+                <p>capital {props.country.capital}</p>
+                <p>population {props.country.population}</p>
+                <h2>languages</h2>
+                <Languages languages={props.country.languages} />
+                <img src={props.country.flags.png} />
+                <Weather country={props.country} />
+            </div>
+        )
+}
+
 const Countries = (props) => {
     return(
         <div>
             {props.countries.map(country => {
                 return(
-                    <Country key={country.name.common} name={country.name.common} capital={country.capital} population={country.population} languages={country.languages} countriesFiltered={props.countries} />
+                    <Country key={country.name.common} country={country} name={country.name.common} capital={country.capital} population={country.population} languages={country.languages} flag={country.flags.png} countriesFiltered={props.countries} />
                 )
             })}
         </div>
     )
 }
 
-const Language = (props) => {
-    return(
-        <div>   
-            {props.language}
-        </div>
-    )
-}
-
-const Languages = (props) => {
-    return(
-        <div>
-            <Language language = {props.languages} />
-        </div>
-    )
-}
-
 const Country = (props) => {
     console.log(props)
+    const [show, setShow] = useState(false)
+    console.log(show)
+
+    //Function that returns a function to change the state of 'show'
+    const showCountryInfo = (showBoolean) => () => {
+            setShow(!showBoolean)
+    }
+
     if(props.countriesFiltered.length > 1) {
-        return(
-            <div>
-                {props.name}
-            </div>
-        )
+        if(!show){
+            return(
+                <div>
+                    {props.name} <Button handleClick={showCountryInfo(show)} text="show" />
+                </div>
+            )
+        }
+        else {
+            return(
+                <div>
+                    {props.name} <Button handleClick={showCountryInfo(show)} text="show" />
+                    <Info country={props.country} />
+                </div>
+            )
+        }
     }
     else {
         return(
             <div>
-                <h3>{props.name}</h3>
-                {props.capital}
-                {props.population}
-                <h2>languages</h2>
-                <Languages languages={props.languages} />
+                <Info country={props.country} />
             </div>
         )
     }
+}
+
+const Button = (props) => {
+    return(
+        <button onClick={props.handleClick}>
+            {props.text}
+        </button>
+    )
 }
 
 const App = () => {
@@ -81,7 +157,6 @@ const App = () => {
     }
 
     const getCountriesHandler = response => {
-        console.log(response.data[0].languages)
         setCountries(response.data)
     }
 
