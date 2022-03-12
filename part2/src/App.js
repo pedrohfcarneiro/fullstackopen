@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import Note from './components/Note'
 import axios from 'axios'
+import Footer from './components/Footer'
+import Notification from './components/Notification'
+import './index.css'
 
 const App = () => {
   const [notes, setNotes] = useState([])
   const [newNote, setNewNote] = useState('')
   const [showAll, setShowAll] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   useEffect(() => {
     console.log('effect')
@@ -24,11 +28,22 @@ const App = () => {
       content: newNote,
       date: new Date().toISOString(),
       important: Math.random() > 0.5,
-      id: notes.length + 1,
     }
 
-    setNotes(notes.concat(noteObject))
-    setNewNote('')
+    axios
+    .post('http://localhost:3001/notes', noteObject)
+    .then(response => {
+      setNotes(notes.concat(response.data))
+      setNewNote('')
+    })
+    .catch(error => {
+        setErrorMessage(
+            `Note '${note.content}' was already removed from server`
+        )
+        setTimeout(() => {
+            setErrorMessage(null)
+        }, 5000)
+    })
   }
 
   const handleNoteChange = (event) => {
@@ -43,6 +58,7 @@ const App = () => {
   return (
     <div>
       <h1>Notes</h1>
+      <Notification message={errorMessage} />
       <div>
         <button onClick={() => setShowAll(!showAll)}>
           show {showAll ? 'important' : 'all' }
@@ -60,6 +76,7 @@ const App = () => {
         />
         <button type="submit">save</button>
       </form>  
+      <Footer />
     </div>
   )
 }

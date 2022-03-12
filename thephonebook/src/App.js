@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import personsService from './services/personsService'
+import Notification from './components/Notification'
+import './index.css'
 
-const Person = ({name, phone}) => {
+const Person = ({name, phone, handleDelete}) => {
     return(
         <div>
-            {name} {phone}
+            {name} {phone} <Button handleClick={handleDelete} text="delete" />
         </div>
     )
 }
 
-const Persons = ({persons}) => {
+const Persons = ({persons, deleteCallbackFunction}) => {
     return(
         <div>
             {persons.map((person) => {
                 return(
-                    <Person key={person.name} name={person.name} phone={person.phone} />
+                    <Person key={person.name} name={person.name} phone={person.phone} handleDelete={deleteCallbackFunction(person.id, person.name)} />
                 )
             })}
         </div>
@@ -47,6 +49,14 @@ const Filter = (props) => {
     )
 }
 
+const Button = ({handleClick,text}) => {
+    return(
+        <div>
+            <button onClick={handleClick}>{text}</button>
+        </div>
+    )
+}
+
 const App = () => {
   const [persons, setPersons] = useState([])
 
@@ -56,47 +66,183 @@ const App = () => {
 
   const [filter, setFilter] = useState('')
 
+  const [notificationMessage, setNotificationMessage] = useState(null)
+
+  const [isError, setIsError] = useState(false)
+
+  let isInDatabase = false
+
   useEffect(() => {
     console.log('effect')
-    axios
-        .get('http://localhost:3001/persons')
-        .then(response => {
-            console.log('promise fullfilled')
-            setPersons(response.data)
+    personsService.getAll()
+        .then(allPersons => {
+            console.log(allPersons)
+            setPersons(allPersons)
+        })
+        .catch(error => {
+          alert(
+            `fail`
+          )
         })
   }, [])
 
   const addPerson = (event) => {
     event.preventDefault()
-    if(!alreadyExists(persons)){
-        const personObject = {
-            name: newName,
-            phone: newPhone
-        }
-        setPersons(persons.concat(personObject))
-        setNewName('')
-        setNewPhone('')
-    }
-    else {
-        const message = `phone or name is already added to phonebook`
-        window.alert(message)
-    }
+    personsService.getAll()
+        .then(dbPersons => {
+            console.log(dbPersons)
+            const dbNames = dbPersons.map(p => p.name)
+            console.log(dbNames)
+            console.log(newName)
+            console.log(dbNames.includes(newName))
+            if(dbNames.includes(newName)){
+                console.log("tornou true")
+                isInDatabase = true
+                console.log(isInDatabase)
+                if(!alreadyExistsInState(persons)){  //It is in database but not in States
+                    const newPersonObject = {
+                        name: newName,
+                        phone: newPhone
+                    }
+                    personsService.createPerson(newPersonObject)
+                        .then(newPerson => {
+                            console.log('promise fullfilled')
+                            setPersons(persons.concat(newPerson))
+                            setNewName('')
+                            setNewPhone('')
+                            setNotificationMessage('Added new person', false)
+                            setTimeout(() => {
+                                setNotificationMessage(null)
+                            }, 5000)
+                        })
+                        .catch(error => {
+                          alert(
+                            `fail`
+                          )
+                          setNotificationMessage('error', true)
+                          setTimeout(() => {
+                              setNotificationMessage(null)
+                          }, 5000)
+                        })
+                }
+                else {  //if there already is in state and db
+                    if(window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+                        const currentPerson = persons.find(p => p.name === newName)
+                        const changedPerson = {...currentPerson, phone: newPhone}
+                        personsService.updatePerson(currentPerson.id, changedPerson)
+                            .then(changedPersonsArray => {
+                                setPersons(persons.map(person => person.name !== newName ? person : changedPerson))
+                                setNewName('')
+                                setNewPhone('')
+                                setNotificationMessage('Added new person', false)
+                                setTimeout(() => {
+                                    setNotificationMessage(null)
+                                }, 5000)
+                            })
+                            .catch(error => {
+                              alert(
+                                `fail`
+                              )
+                              setNotificationMessage('error', true)
+                              setTimeout(() => {
+                                  setNotificationMessage(null)
+                              }, 5000)
+                            })
+                    }
+                }
+            }
+            else {
+                if(!alreadyExistsInState(persons)){ //It is not in database and not in state
+                    const newPersonObject = {
+                        name: newName,
+                        phone: newPhone
+                    }
+                    personsService.createPerson(newPersonObject)
+                        .then(newPerson => {
+                            console.log('promise fullfilled')
+                            setPersons(persons.concat(newPerson))
+                            setNewName('')
+                            setNewPhone('')
+                            setNotificationMessage('Added new person', false)
+                            setTimeout(() => {
+                                setNotificationMessage(null)
+                            }, 5000)
+                        })
+                        .catch(error => {
+                          alert(
+                            `fail`
+                          )
+                          setNotificationMessage('error', true)
+                          setTimeout(() => {
+                            setNotificationMessage(null)
+                          }, 5000)
+                        })
+                }
+                else {  //It is not in database but it is in state
+                    console.log("não está na base mas está nos estados")
+                }
+            }
+        })
   }
 
-  const alreadyExists = (persons) => {
+  const deletePerson = (id, name) => {
+    return (() => {
+        if(window.confirm(`delete ${name}?`)) {
+        personsService.deletePerson(id)
+            .then(response => {
+                console.log(response)
+                setPersons(persons.filter(person => person.id !== id))
+                setNotificationMessage('Deleted Person', false)
+                setTimeout(() => {
+                    setNotificationMessage(null)
+                }, 5000)
+            })
+            .catch(error => {
+                alert(
+                    `fail`
+                )
+                setNotificationMessage('error', true)
+                setTimeout(() => {
+                    setNotificationMessage(null)
+                }, 5000)
+            })
+        }
+        else
+            return
+    }
+    )
+  }
+
+  const alreadyExistsInState = (persons) => {
     const names = persons.map(person => person.name)
-    const phones = persons.map(person => person.phone)
-    console.log(names)
-    if(names.includes(newName))
+    if(names.includes(newName)){
         return true
-    else if(phones.includes(newPhone))
-        return true
+    }
     else
         return false
   }
 
+
+
+  const CheckIfNewNameIsInDatabase = () => {
+    personsService.getAll()
+        .then(persons => {
+            console.log(persons)
+            const dbNames = persons.map(p => p.name)
+            console.log(dbNames)
+            console.log(newName)
+            console.log(dbNames.includes(newName))
+            if(dbNames.includes(newName)){
+                console.log("tornou true")
+                isInDatabase = true
+                console.log(isInDatabase)
+            }
+            else
+                isInDatabase = false
+        })
+  }
+
 const handleNameChange = (event) => {
-    console.log(alreadyExists(persons))
     setNewName(event.target.value)
 }
 
@@ -117,11 +263,12 @@ const personsToShow = (filter === '' || null) ? persons : persons.filter(person 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} />
       <Filter filter={filter} handleFilterChange={handleFilterChange} />
       <h3>Add a new</h3>
       <Form addPerson = {addPerson} handleNameChange={handleNameChange} handlePhoneChange={handlePhoneChange} newName={newName} newPhone={newPhone} />
       <h2>Numbers</h2>
-      <Persons persons={personsToShow} />
+      <Persons persons={personsToShow} deleteCallbackFunction = {deletePerson} />
     </div>
   )
 }
