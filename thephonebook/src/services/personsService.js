@@ -1,5 +1,5 @@
 import axios from 'axios'
-const baseUrl = 'http://localhost:3001/persons'
+const baseUrl = 'https://salty-fjord-97682.herokuapp.com/phonebookapi/contacts'
 
 const getAll = () => {
   const request = axios.get(baseUrl)
