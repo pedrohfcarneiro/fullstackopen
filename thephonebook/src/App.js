@@ -72,7 +72,7 @@ const App = () => {
 
   let isInDatabase = false
 
-  useEffect(() => {
+  const getPeople = () => {
     console.log('effect')
     personsService.getAll()
         .then(allPersons => {
@@ -84,7 +84,9 @@ const App = () => {
             `fail`
           )
         })
-  }, [])
+  }
+
+  useEffect(getPeople, [])
 
   const addPerson = (event) => {
     event.preventDefault()
@@ -94,6 +96,7 @@ const App = () => {
             const dbNames = dbPersons.map(p => p.name)
             console.log(dbNames)
             console.log(newName)
+            console.log("opa")
             console.log(dbNames.includes(newName))
             if(dbNames.includes(newName)){
                 console.log("tornou true")
@@ -110,22 +113,28 @@ const App = () => {
                             setPersons(persons.concat(newPerson))
                             setNewName('')
                             setNewPhone('')
-                            setNotificationMessage('Added new person', false)
+                            setNotificationMessage('Added new person')
+                            setIsError(false)
                             setTimeout(() => {
                                 setNotificationMessage(null)
+                                setIsError(null)
                             }, 5000)
                         })
                         .catch(error => {
-                          alert(
-                            `fail`
-                          )
-                          setNotificationMessage('error', true)
-                          setTimeout(() => {
-                              setNotificationMessage(null)
-                          }, 5000)
+                            console.log(error.response.data)
+                            alert(
+                                `fail`
+                            )
+                            setNotificationMessage(error.response.data)
+                            setIsError(true)
+                            setTimeout(() => {
+                                setNotificationMessage(null)
+                                setIsError(null)
+                            }, 5000)
                         })
                 }
                 else {  //if there already is in state and db
+                    console.log("entrou aqui")
                     if(window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
                         const currentPerson = persons.find(p => p.name === newName)
                         const changedPerson = {...currentPerson, phone: newPhone}
@@ -134,19 +143,24 @@ const App = () => {
                                 setPersons(persons.map(person => person.name !== newName ? person : changedPerson))
                                 setNewName('')
                                 setNewPhone('')
-                                setNotificationMessage('Added new person', false)
+                                setNotificationMessage('Added new person')
+                                setIsError(false)
                                 setTimeout(() => {
                                     setNotificationMessage(null)
+                                    setIsError(null)
                                 }, 5000)
                             })
                             .catch(error => {
-                              alert(
-                                `fail`
-                              )
-                              setNotificationMessage('error', true)
-                              setTimeout(() => {
-                                  setNotificationMessage(null)
-                              }, 5000)
+                                console.log(error.response.data)
+                                alert(
+                                    `fail`
+                                )
+                                setNotificationMessage(error.response.data)
+                                setIsError(true)
+                                setTimeout(() => {
+                                    setNotificationMessage(null)
+                                    setIsError(null)
+                                }, 5000)
                             })
                     }
                 }
@@ -163,23 +177,29 @@ const App = () => {
                             setPersons(persons.concat(newPerson))
                             setNewName('')
                             setNewPhone('')
-                            setNotificationMessage('Added new person', false)
+                            setNotificationMessage('Added new person')
+                            setIsError(false)
                             setTimeout(() => {
                                 setNotificationMessage(null)
+                                setIsError(null)
                             }, 5000)
                         })
                         .catch(error => {
-                          alert(
-                            `fail`
-                          )
-                          setNotificationMessage('error', true)
-                          setTimeout(() => {
-                            setNotificationMessage(null)
-                          }, 5000)
+                            console.log(error.response)
+                            console.log(error.response.data)
+                            alert(
+                                `fail`
+                            )
+                            setNotificationMessage(error.response.data.error, true)
+                            setIsError(true)
+                            setTimeout(() => {
+                                setNotificationMessage(null)
+                                setIsError(null)
+                            }, 5000)
                         })
                 }
                 else {  //It is not in database but it is in state
-                    console.log("não está na base mas está nos estados")
+                    console.log("nï¿½o estï¿½ na base mas estï¿½ nos estados")
                 }
             }
         })
@@ -192,18 +212,22 @@ const App = () => {
             .then(response => {
                 console.log(response)
                 setPersons(persons.filter(person => person.id !== id))
-                setNotificationMessage('Deleted Person', false)
+                setNotificationMessage('Deleted Person')
+                setIsError(false)
                 setTimeout(() => {
                     setNotificationMessage(null)
+                    setIsError(null)
                 }, 5000)
             })
             .catch(error => {
                 alert(
                     `fail`
                 )
-                setNotificationMessage('error', true)
+                setNotificationMessage('error')
+                setIsError(true)
                 setTimeout(() => {
                     setNotificationMessage(null)
+                    setIsError(null)
                 }, 5000)
             })
         }
@@ -263,7 +287,7 @@ const personsToShow = (filter === '' || null) ? persons : persons.filter(person 
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification message={notificationMessage} />
+      <Notification message={notificationMessage} isError={isError}/>
       <Filter filter={filter} handleFilterChange={handleFilterChange} />
       <h3>Add a new</h3>
       <Form addPerson = {addPerson} handleNameChange={handleNameChange} handlePhoneChange={handlePhoneChange} newName={newName} newPhone={newPhone} />

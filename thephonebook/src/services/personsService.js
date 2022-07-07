@@ -21,4 +21,4 @@ const deletePerson = (id) => {
 	return request
 }
 
-export default { getAll,createPerson,updatePerson, deletePerson}
+export default {getAll,createPerson,updatePerson, deletePerson}
